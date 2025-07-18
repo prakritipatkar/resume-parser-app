@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Resume Parser</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .container {
+      display: flex;
+      gap: 20px;
+    }
+
+    .column {
+      flex: 1;
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      height: 70vh;
+      overflow-y: auto;
+    }
+
+    .column h2 {
+      margin-top: 0;
+      
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    form {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      background: #007bff;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      font-weight: bold;
+    }
+
+    .loader {
+      display: none;
+      margin: 20px auto;
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #007bff;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <h1>Resume Parser</h1>
+
+  <form id="uploadForm">
+    <input type="file" name="resume" accept=".pdf" required />
+    <button type="submit">Upload & Parse</button>
+    <div class="loader" id="loader"></div>
+  </form>
+
+  <div class="container">
+    <div class="column">
+      <h2>📄 Resume Preview</h2>
+      <iframe id="pdfViewer" src=""></iframe>
+    </div>
+
+    <div class="column">
+      <h2>✅ Extracted Fields</h2>
+      <div id="parsedResults">Form fields will appear here...</div>
+    </div>
+  </div>
+
+    <div style="margin-top: 40px;">
+    <h2 style="text-align: center;">🤖 Ask Gemini About the Resume</h2>
+    <div style="text-align: center;">
+      <input type="text" id="userQuestion" placeholder="Type your question..." style="padding: 10px; width: 60%; max-width: 500px;" />
+      <button onclick="askGemini()" style="margin-left: 10px;">Ask</button>
+    </div>
+    <div id="geminiAnswer" style="margin-top: 20px; text-align: center; font-size: 16px; color: #333;"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById("uploadForm");
+    const parsedResults = document.getElementById("parsedResults");
+    const loader = document.getElementById("loader");
+    const pdfViewer = document.getElementById("pdfViewer");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fileInput = form.querySelector("input[type='file']");
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      loader.style.display = "block";
+      parsedResults.innerHTML = "";
+
+      const formData = new FormData();
+      formData.append("resume", file);
+
+      const response = await fetch("/upload", {
+        method: "POST",
+        body: formData
+      });
+
+      const data = await response.json();
+      loader.style.display = "none";
+
+      // Display extracted fields
+      for (let key in data) {
+        parsedResults.innerHTML += `
+          <div class="field">
+            <label>${key}:</label>
+            <div>${data[key]}</div>
+          </div>`;
+      }
+
+      // Show PDF preview
+      const fileURL = URL.createObjectURL(file);
+      pdfViewer.src = fileURL;
+    });
+        async function askGemini() {
+      const question = document.getElementById("userQuestion").value.trim();
+      const answerDiv = document.getElementById("geminiAnswer");
+      if (!question) {
+        answerDiv.innerText = "Please enter a question.";
+        return;
+      }
+
+      answerDiv.innerText = "Thinking...";
+
+      try {
+        const response = await fetch('/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question })
+        });
+
+        const data = await response.json();
+        if (data.answer) {
+          answerDiv.innerText = `💬 ${data.answer}`;
+        } else {
+          answerDiv.innerText = "No answer received.";
+        }
+      } catch (error) {
+        answerDiv.innerText = "Error fetching answer.";
+        console.error("QnA error:", error);
+      }
+    }
+
+  </script>
+</body>
+</html>

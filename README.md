@@ -27,7 +27,7 @@ GEMINI_API_KEY=your_api_key_here
 ```bash
 python app.py
 ```
-Visit http://localhost:5000
+5. Visit http://localhost:5000
 
 📁 Structure
 ```bash
